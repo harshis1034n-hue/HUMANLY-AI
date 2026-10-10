@@ -1,190 +1,142 @@
-import { ScanResult, HardwareInfo, HistoryItem, BenchmarkResult, DetectedEntity } from '../types';
-import { LocalOnDeviceEngine, COACH_EXPLANATIONS } from './localEngine';
+import {
+  HealthStatus,
+  RoboticAnalysisResult,
+  HumanizeResponse,
+  VerificationReport,
+  TextType,
+  ToneMode,
+  HumanizationLevel
+} from '../types';
 
-// Dynamically check if running locally on HTTP with backend available
-const isLocalHttp = typeof window !== 'undefined' &&
-  window.location.protocol === 'http:' &&
-  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const API_BASE = '/api';
 
-const API_BASE = isLocalHttp ? 'http://127.0.0.1:8000/api' : '/api';
+export class ApiError extends Error {
+  code: string;
+  status: number;
 
-/**
- * Fetch wrapper with timeout
- */
-async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 2000): Promise<Response> {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
-    clearTimeout(id);
-    return res;
-  } catch (err) {
-    clearTimeout(id);
-    throw err;
+  constructor(message: string, code: string = 'UNKNOWN_ERROR', status: number = 500) {
+    super(message);
+    this.name = 'ApiError';
+    this.code = code;
+    this.status = status;
   }
 }
 
+async function handleResponse<T>(res: Response): Promise<T> {
+  const contentType = res.headers.get('content-type') || '';
+  let data: any = null;
+
+  if (contentType.includes('application/json')) {
+    try {
+      data = await res.json();
+    } catch {
+      data = null;
+    }
+  } else {
+    data = await res.text();
+  }
+
+  if (!res.ok) {
+    let message = 'An unexpected error occurred.';
+    let code = 'SERVER_ERROR';
+
+    if (data && typeof data === 'object') {
+      message = data.message || data.detail?.message || data.detail || JSON.stringify(data);
+      code = data.error || data.detail?.error || `HTTP_${res.status}`;
+    } else if (typeof data === 'string' && data) {
+      message = data;
+    }
+
+    throw new ApiError(message, code, res.status);
+  }
+
+  return data as T;
+}
+
 export const api = {
-  async getHealth(): Promise<any> {
-    if (isLocalHttp) {
-      try {
-        const res = await fetchWithTimeout(`${API_BASE}/health`, {}, 1500);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.status) return data;
-        }
-      } catch {}
+  async getHealth(): Promise<HealthStatus> {
+    try {
+      const res = await fetch(`${API_BASE}/health`, {
+        headers: { 'Accept': 'application/json' }
+      });
+      return await handleResponse<HealthStatus>(res);
+    } catch (err: any) {
+      if (err instanceof ApiError) throw err;
+      throw new ApiError('Unable to connect to Humanly AI backend server. Please verify the backend is running.', 'NETWORK_ERROR', 0);
     }
-    const hw = LocalOnDeviceEngine.getHardwareInfo();
-    const { metrics } = LocalOnDeviceEngine.getHistory();
-    return {
-      status: 'HEALTHY',
-      protectionActive: true,
-      timestamp: Date.now() / 1000,
-      hardware: hw,
-      metrics,
-      cloudDataEgressBytes: 0,
-      mode: 'In-Browser On-Device Engine',
+  },
+
+  async analyzeText(text: string): Promise<RoboticAnalysisResult> {
+    const res = await fetch(`${API_BASE}/analyze`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ text })
+    });
+    return await handleResponse<RoboticAnalysisResult>(res);
+  },
+
+  async humanizeText(
+    text: string,
+    textType: TextType,
+    tone: ToneMode,
+    level: HumanizationLevel,
+    optionalContext?: string,
+    apiKey?: string
+  ): Promise<HumanizeResponse> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
     };
+
+    if (apiKey && apiKey.trim()) {
+      headers['x-gemini-api-key'] = apiKey.trim();
+    }
+
+    const res = await fetch(`${API_BASE}/humanize`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        text,
+        textType,
+        context: textType, // legacy support
+        tone,
+        level,
+        length: level, // legacy support
+        optionalContext: optionalContext?.trim() || undefined,
+        apiKey: apiKey?.trim() || undefined
+      })
+    });
+
+    return await handleResponse<HumanizeResponse>(res);
   },
 
-  async getHardwareInfo(): Promise<HardwareInfo> {
-    if (isLocalHttp) {
-      try {
-        const res = await fetchWithTimeout(`${API_BASE}/hardware`, {}, 1500);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.processorName) return data;
-        }
-      } catch {}
-    }
-    return LocalOnDeviceEngine.getHardwareInfo();
-  },
-
-  async runBenchmark(iterations = 2): Promise<BenchmarkResult> {
-    if (isLocalHttp) {
-      try {
-        const res = await fetchWithTimeout(`${API_BASE}/benchmark/run`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ iterations }),
-        }, 4000);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.summary) return data;
-        }
-      } catch {}
-    }
-    return LocalOnDeviceEngine.runBenchmark(iterations);
-  },
-
-  async generateDemo(): Promise<{ dataUri: string; width: number; height: number; isSyntheticDemo: boolean }> {
-    if (isLocalHttp) {
-      try {
-        const res = await fetchWithTimeout(`${API_BASE}/demo/generate`, {}, 2000);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.dataUri) return data;
-        }
-      } catch {}
-    }
-    return LocalOnDeviceEngine.generateDemoPortal();
-  },
-
-  async scanImage(imageBase64: string, ocrProvider = 'auto', categoryFilter?: string[]): Promise<ScanResult> {
-    if (isLocalHttp) {
-      try {
-        const res = await fetchWithTimeout(`${API_BASE}/scan`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageBase64, ocrProvider, categoryFilter }),
-        }, 5000);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && Array.isArray(data.entities)) return data;
-        }
-      } catch {}
-    }
-    // Guaranteed on-device local execution
-    return await LocalOnDeviceEngine.scanImageLocally(imageBase64, ocrProvider);
-  },
-
-  async redactImage(
-    imageBase64: string,
-    entities: DetectedEntity[],
-    redactionStyle = 'blur',
-    logToHistory = true
-  ): Promise<{ protectedImageUri: string; maskedCount: number; redactionStyle: string; assessment: any }> {
-    if (isLocalHttp) {
-      try {
-        const res = await fetchWithTimeout(`${API_BASE}/redact`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageBase64, entities, redactionStyle, logToHistory }),
-        }, 5000);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.protectedImageUri) return data;
-        }
-      } catch {}
-    }
-    return await LocalOnDeviceEngine.redactImageLocally(imageBase64, entities, redactionStyle);
-  },
-
-  async captureDesktopScreen(monitorIndex = 1): Promise<{ success: boolean; dataUri: string; width: number; height: number; source?: string }> {
-    if (isLocalHttp) {
-      try {
-        const res = await fetchWithTimeout(`${API_BASE}/screen/capture?monitorIndex=${monitorIndex}`, {
-          method: 'POST',
-        }, 3000);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success) return data;
-        }
-      } catch {}
-    }
-    const demo = LocalOnDeviceEngine.generateDemoPortal();
-    return {
-      success: true,
-      dataUri: demo.dataUri,
-      width: demo.width,
-      height: demo.height,
-      source: 'simulated_desktop_session'
+  async verifyText(
+    sourceText: string,
+    rewrittenText: string,
+    apiKey?: string
+  ): Promise<VerificationReport> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
     };
-  },
 
-  async getHistory(): Promise<{ history: HistoryItem[]; metrics: any }> {
-    if (isLocalHttp) {
-      try {
-        const res = await fetchWithTimeout(`${API_BASE}/history`, {}, 1500);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && Array.isArray(data.history)) return data;
-        }
-      } catch {}
+    if (apiKey && apiKey.trim()) {
+      headers['x-gemini-api-key'] = apiKey.trim();
     }
-    return LocalOnDeviceEngine.getHistory();
-  },
 
-  async clearHistory(): Promise<void> {
-    if (isLocalHttp) {
-      try {
-        await fetchWithTimeout(`${API_BASE}/history/clear`, { method: 'POST' }, 1000);
-      } catch {}
-    }
-    LocalOnDeviceEngine.clearHistory();
-  },
+    const res = await fetch(`${API_BASE}/verify`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        sourceText,
+        rewrittenText,
+        apiKey: apiKey?.trim() || undefined
+      })
+    });
 
-  async getCoachExplanation(entityType: string): Promise<any> {
-    if (isLocalHttp) {
-      try {
-        const res = await fetchWithTimeout(`${API_BASE}/coach/explain/${entityType}`, {}, 1500);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.title) return data;
-        }
-      } catch {}
-    }
-    return COACH_EXPLANATIONS[entityType] || COACH_EXPLANATIONS.DEFAULT;
-  },
+    return await handleResponse<VerificationReport>(res);
+  }
 };

@@ -1,7 +1,7 @@
 {
-  "name": "snapdragon-ai-demo",
+  "name": "humanly-ai",
   "version": "1.0.0",
-  "description": "Snapdragon AI Demo - On-Device Screen Privacy Firewall for Snapdragon AI PCs",
+  "description": "Humanly AI — Make AI Sound Human. Keep Every Fact Intact.",
   "private": true,
   "scripts": {
     "dev": "vite",
@@ -19,7 +19,8 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^2.12.7",
-    "tailwind-merge": "^2.4.0"
+    "tailwind-merge": "^2.4.0",
+    "vite": "^5.4.2"
   },
   "devDependencies": {
     "@types/node": "^20.14.10",

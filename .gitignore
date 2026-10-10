@@ -46,3 +46,4 @@ temp_capture*.png
 test_output*.png
 
 .vercel
+.env*

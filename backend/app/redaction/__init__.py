@@ -1,1 +1,0 @@
-# SnapSafe AI Redaction

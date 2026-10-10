@@ -9,29 +9,56 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        slate: {
-          850: "#172033",
-          900: "#0f172a",
-          950: "#090d16",
+        midnight: {
+          950: "#080B18", // Primary Deep Midnight Navy
+          900: "#0D1127",
+          850: "#111736",
+          800: "#161F45",
+          700: "#1E295C",
+          600: "#2B3A7E",
         },
-        snapdragon: {
-          50: "#fff1f2",
-          500: "#f43f5e",
-          600: "#e11d48",
-          700: "#be123c",
-          accent: "#ff3b30",
+        electric: {
+          cyan: "#22D3EE",
+          cyanDark: "#06B6D4",
+          violet: "#A855F7",
+          indigo: "#6366F1",
+          purpleGlow: "#C084FC",
         },
-        shield: {
-          emerald: "#10b981",
-          cyan: "#06b6d4",
-          blue: "#3b82f6",
-          amber: "#f59e0b",
-          rose: "#f43f5e",
+        lavender: {
+          50: "#F8FAFC",
+          100: "#F1F5F9",
+          200: "#E2E8F0",
+          300: "#CBD5E1",
+          400: "#94A3B8",
+          500: "#64748B",
         }
       },
       fontFamily: {
-        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: ['Inter', 'Manrope', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
         mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+      },
+      animation: {
+        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'orb-float': 'orbFloat 8s ease-in-out infinite alternate',
+        'orb-float-delayed': 'orbFloat 10s ease-in-out 3s infinite alternate-reverse',
+        'fade-in': 'fadeIn 0.3s ease-out forwards',
+      },
+      keyframes: {
+        orbFloat: {
+          '0%': { transform: 'translate(0px, 0px) scale(1)' },
+          '50%': { transform: 'translate(20px, -25px) scale(1.08)' },
+          '100%': { transform: 'translate(-15px, 15px) scale(0.95)' },
+        },
+        fadeIn: {
+          '0%': { opacity: '0', transform: 'translateY(6px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        }
+      },
+      boxShadow: {
+        'glow-cyan': '0 0 25px -5px rgba(34, 211, 238, 0.3)',
+        'glow-violet': '0 0 35px -5px rgba(168, 85, 247, 0.25)',
+        'glow-indigo': '0 0 30px -5px rgba(99, 102, 241, 0.3)',
+        'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
       }
     },
   },

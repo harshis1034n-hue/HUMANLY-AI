@@ -1,110 +1,117 @@
-export interface BoundingBox {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+export type TextType =
+  | 'recruiter_feedback'
+  | 'candidate_email'
+  | 'interview_question'
+  | 'interview_summary'
+  | 'report'
+  | 'general_text';
 
-export interface CoachAdvice {
+// Backwards compatibility alias
+export type CommunicationContext = TextType;
+
+export type ToneMode = 'professional' | 'polished' | 'conversational';
+
+export type HumanizationLevel = 'light' | 'balanced' | 'strong';
+
+// Backwards compatibility alias
+export type LengthPreference = HumanizationLevel;
+
+export type VerificationStatus =
+  | 'No obvious differences detected'
+  | 'Potential differences found'
+  | 'Verification incomplete';
+
+export interface WritingIssue {
+  type: 'generic_opening' | 'repeated_structure' | 'repetitive_phrasing' | 'excessive_formality' | 'long_sentence';
+  severity: 'high' | 'medium' | 'low';
   title: string;
-  whyRisky: string;
-  impact: string;
-  recommendation: string;
+  snippet?: string;
+  description: string;
+  suggestion: string;
 }
 
-export interface DetectedEntity {
-  id: string;
-  type: string;
-  displayName: string;
-  value: string;
-  maskedValue: string;
-  confidence: number;
-  risk: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
-  action: string;
-  boundingBox: BoundingBox;
-  category: string;
-  isMasked: boolean;
-  coachAdvice?: CoachAdvice;
+export interface ReadabilityMetrics {
+  wordCount: number;
+  sentenceCount: number;
+  averageSentenceLength: number;
+  repetitionCount: number;
 }
 
-export interface RiskAssessment {
-  totalDetected: number;
-  totalMasked: number;
-  counts: {
-    CRITICAL: number;
-    HIGH: number;
-    MEDIUM: number;
-    LOW: number;
+export interface RoboticAnalysisResult {
+  issues: WritingIssue[];
+  readabilityMetrics: ReadabilityMetrics;
+  summary: string;
+}
+
+export interface VerificationReport {
+  status: VerificationStatus;
+  deterministicPassed: boolean;
+  preservedItems: string[];
+  preservedEntities: string[];
+  preservedNumbersDates: string[];
+  needsReviewItems: string[];
+  potentiallyChangedFacts: string[];
+  meaningCertaintyNotes: string[];
+  summary: string;
+  disclaimer: string;
+}
+
+export interface HumanizeResponse {
+  originalText: string;
+  rewrittenText: string;
+  explanation?: string;
+  preservedEntities?: string[];
+  potentialConcerns?: string[];
+  analysis: RoboticAnalysisResult;
+  verification: VerificationReport;
+  meta: {
+    textType: TextType;
+    context?: TextType;
+    tone: ToneMode;
+    level: HumanizationLevel;
+    length?: HumanizationLevel;
+    optionalContext?: string;
+    originalWords: number;
+    rewrittenWords: number;
+    latencyMs: number;
   };
-  criticalCount: number;
-  highCount: number;
-  mediumCount: number;
-  lowCount: number;
-  privacyRiskRaw: number;
-  privacyRiskAfter: number;
-  privacyScoreRaw: number;
-  privacyScoreAfter: number;
-  dataUploadedBytes: number;
-  isSafeToShare: boolean;
-}
-
-export interface ScanResult {
-  success: boolean;
-  imageWidth: number;
-  imageHeight: number;
-  ocrEngine: string;
-  deviceTarget: string;
-  ocrInferenceTimeMs: number;
-  totalPipelineTimeMs: number;
-  totalEntitiesDetected: number;
-  entities: DetectedEntity[];
-  riskAssessment: RiskAssessment;
-  zeroCloudGuarantee: boolean;
-  cloudBytesTransmitted: number;
-}
-
-export interface HardwareInfo {
-  platform: string;
-  architecture: string;
-  processor: string;
-  isWindowsArm64: boolean;
-  isSnapdragonHost: boolean;
-  targetDevice: string;
-  onnxProviders: string[];
-  hasNpuHardware: boolean;
-  npuStatus: string;
-  directMlAvailable: boolean;
-  aiBackend: string;
-  cloudUploadStatus: string;
-  environmentStatus: string;
 }
 
 export interface HistoryItem {
-  id: number;
+  id: string;
   timestamp: string;
-  detectionCount: number;
-  highestRisk: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
-  actionTaken: string;
-  itemsMasked: number;
-  categories: string[];
-  riskBefore: number;
-  riskAfter: number;
-  cloudBytes: number;
+  originalText: string;
+  rewrittenText: string;
+  textType: TextType;
+  tone: ToneMode;
+  level: HumanizationLevel;
+  optionalContext?: string;
+  verificationStatus: VerificationStatus;
+  originalWords: number;
+  rewrittenWords: number;
+  explanation?: string;
 }
 
-export interface BenchmarkResult {
+export interface HealthStatus {
+  status: string;
+  app: string;
+  tagline: string;
+  hackathon?: string;
+  problemStatement?: string;
+  version: string;
+  aiConfigured: boolean;
   model: string;
-  targetHardware: string;
-  executionUnit: string;
-  isFabricated: boolean;
-  benchmarkStatus: string;
-  iterations: number;
-  averageLatencyMs: number;
-  minLatencyMs: number;
-  maxLatencyMs: number;
-  throughputFps: number;
-  memoryFootprintMb: string;
-  powerThermalNote: string;
-  qualcommAiHubReady: boolean;
-  note: string;
+}
+
+export interface SampleItem {
+  id: string;
+  title: string;
+  badge: string;
+  description: string;
+  textType: TextType;
+  tone: ToneMode;
+  level: HumanizationLevel;
+  optionalContext?: string;
+  text: string;
+  factualNote?: string;
 }
