@@ -9,6 +9,10 @@
 [![Tests Passing](https://img.shields.io/badge/Tests-11%20Pytest%20%2B%205%20Vitest%20Passed-brightgreen)](tests/test_humanly_backend.py)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel%20Production-success?logo=vercel)](https://humanly-ai-eta.vercel.app)
 
+> 🚀 **Live Production Studio**: **[https://humanly-ai-eta.vercel.app](https://humanly-ai-eta.vercel.app)**  
+> 🏆 **Event**: Google Student Club Welcome Hackathon 2026 — Problem Statement 02  
+> ⚡ **Model**: Google Gemini API (`gemini-3.5-flash-lite`)
+
 ---
 
 ## 🌐 Live Production Demo
